@@ -18,13 +18,10 @@ var marshalTests = []marshalTest{
 	{asn1.ObjectIdentifier([]int{2, 100, 3}), "0603813403"},
 
 	// Ensure large OID suboids are marshalled correctly
+	// See marshal_64bit_test.go for none 32-bit compatible examples.
 	{
 		asn1.ObjectIdentifier([]int{1, 3, 6, 1, 2, 1, 31, 1, 1, 1, 1, 1090781219}),
 		"060f2b060102011f010101018488908023",
-	},
-	{
-		asn1.ObjectIdentifier([]int{1, 3, 6, 1, 4, 1, 9, 10, 138, 1, 4, 1, 2, 1, 3221225473}),
-		"06132b06010401090a810a01040102018c80808001",
 	},
 }
 
