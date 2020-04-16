@@ -5,16 +5,11 @@
 package ber
 
 import (
+	"encoding/asn1"
 	"reflect"
 	"strconv"
 	"strings"
 )
-
-// ASN.1 objects have metadata preceding them:
-//   the tag: the type of the object
-//   a flag denoting if this object is compound or not
-//   the class type: the namespace of the tag
-//   the length of the object, in bytes
 
 type tagAndLength struct {
 	class, tag, length int
@@ -44,6 +39,7 @@ type fieldParameters struct {
 	optional     bool   // true iff the field is OPTIONAL
 	explicit     bool   // true iff an EXPLICIT tag is in use.
 	application  bool   // true iff an APPLICATION tag is in use.
+	private      bool   // true iff a PRIVATE tag is in use.
 	defaultValue *int64 // a default value for INTEGER typed fields (maybe nil).
 	tag          *int   // the EXPLICIT or IMPLICIT tag (maybe nil).
 	stringType   int    // the string tag to use when marshaling.
@@ -69,15 +65,17 @@ func parseFieldParameters(str string) (ret fieldParameters) {
 				ret.tag = new(int)
 			}
 		case part == "generalized":
-			ret.timeType = tagGeneralizedTime
+			ret.timeType = asn1.TagGeneralizedTime
 		case part == "utc":
-			ret.timeType = tagUTCTime
+			ret.timeType = asn1.TagUTCTime
 		case part == "ia5":
-			ret.stringType = tagIA5String
+			ret.stringType = asn1.TagIA5String
 		case part == "printable":
-			ret.stringType = tagPrintableString
+			ret.stringType = asn1.TagPrintableString
+		case part == "numeric":
+			ret.stringType = asn1.TagNumericString
 		case part == "utf8":
-			ret.stringType = tagUTF8String
+			ret.stringType = asn1.TagUTF8String
 		case strings.HasPrefix(part, "default:"):
 			i, err := strconv.ParseInt(part[8:], 10, 64)
 			if err == nil {
@@ -97,6 +95,11 @@ func parseFieldParameters(str string) (ret fieldParameters) {
 			if ret.tag == nil {
 				ret.tag = new(int)
 			}
+		case part == "private":
+			ret.private = true
+			if ret.tag == nil {
+				ret.tag = new(int)
+			}
 		case part == "omitempty":
 			ret.omitEmpty = true
 		}
@@ -106,36 +109,38 @@ func parseFieldParameters(str string) (ret fieldParameters) {
 
 // Given a reflected Go type, getUniversalType returns the default tag number
 // and expected compound flag.
-func getUniversalType(t reflect.Type) (tagNumber int, isCompound, ok bool) {
+func getUniversalType(t reflect.Type) (matchAny bool, tagNumber int, isCompound, ok bool) {
 	switch t {
+	case rawValueType:
+		return true, -1, false, true
 	case objectIdentifierType:
-		return tagOID, false, true
+		return false, asn1.TagOID, false, true
 	case bitStringType:
-		return tagBitString, false, true
+		return false, asn1.TagBitString, false, true
 	case timeType:
-		return tagUTCTime, false, true
+		return false, asn1.TagUTCTime, false, true
 	case enumeratedType:
-		return tagEnum, false, true
+		return false, asn1.TagEnum, false, true
 	case bigIntType:
-		return tagInteger, false, true
+		return false, asn1.TagInteger, false, true
 	}
 	switch t.Kind() {
 	case reflect.Bool:
-		return tagBoolean, false, true
+		return false, asn1.TagBoolean, false, true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return tagInteger, false, true
+		return false, asn1.TagInteger, false, true
 	case reflect.Struct:
-		return tagSequence, true, true
+		return false, asn1.TagSequence, true, true
 	case reflect.Slice:
 		if t.Elem().Kind() == reflect.Uint8 {
-			return tagOctetString, false, true
+			return false, asn1.TagOctetString, false, true
 		}
 		if strings.HasSuffix(t.Name(), "SET") {
-			return tagSet, true, true
+			return false, asn1.TagSet, true, true
 		}
-		return tagSequence, true, true
+		return false, asn1.TagSequence, true, true
 	case reflect.String:
-		return tagPrintableString, false, true
+		return false, asn1.TagPrintableString, false, true
 	}
-	return 0, false, false
+	return false, 0, false, false
 }
