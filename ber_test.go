@@ -1,50 +1,7 @@
 package ber
 
 import (
-	"encoding/asn1"
 	"math"
-)
-
-// Compatibility types for ber_asn1_test.go
-type (
-	RawValue         = asn1.RawValue
-	RawContent       = asn1.RawContent
-	ObjectIdentifier = asn1.ObjectIdentifier
-	BitString        = asn1.BitString
-	StructuralError  = asn1.StructuralError
-)
-
-// Compatibility consts for ber_asn1_test.go
-const (
-	TagBoolean         = asn1.TagBoolean
-	TagInteger         = asn1.TagInteger
-	TagBitString       = asn1.TagBitString
-	TagOctetString     = asn1.TagOctetString
-	TagNull            = asn1.TagNull
-	TagOID             = asn1.TagOID
-	TagEnum            = asn1.TagEnum
-	TagUTF8String      = asn1.TagUTF8String
-	TagSequence        = asn1.TagSequence
-	TagSet             = asn1.TagSet
-	TagNumericString   = asn1.TagNumericString
-	TagPrintableString = asn1.TagPrintableString
-	TagT61String       = asn1.TagT61String
-	TagIA5String       = asn1.TagIA5String
-	TagUTCTime         = asn1.TagUTCTime
-	TagGeneralizedTime = asn1.TagGeneralizedTime
-	TagGeneralString   = asn1.TagGeneralString
-	TagBMPString       = asn1.TagBMPString
-
-	ClassUniversal       = asn1.ClassUniversal
-	ClassApplication     = asn1.ClassApplication
-	ClassContextSpecific = asn1.ClassContextSpecific
-	ClassPrivate         = asn1.ClassPrivate
-)
-
-// Compatibility vars for ber_asn1_test.go
-var (
-	NullRawValue = asn1.NullRawValue
-	NullBytes    = asn1.NullBytes
 )
 
 func init() {

@@ -6,6 +6,7 @@ package ber
 
 import (
 	"bytes"
+	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -179,7 +180,7 @@ func TestBitString(t *testing.T) {
 }
 
 func TestBitStringAt(t *testing.T) {
-	bs := BitString{[]byte{0x82, 0x40}, 16}
+	bs := asn1.BitString{[]byte{0x82, 0x40}, 16}
 	if bs.At(0) != 1 {
 		t.Error("#1: Failed")
 	}
@@ -217,7 +218,7 @@ var bitStringRightAlignTests = []bitStringRightAlignTest{
 
 func TestBitStringRightAlign(t *testing.T) {
 	for i, test := range bitStringRightAlignTests {
-		bs := BitString{test.in, test.inlen}
+		bs := asn1.BitString{test.in, test.inlen}
 		out := bs.RightAlign()
 		if !bytes.Equal(out, test.out) {
 			t.Errorf("#%d got: %x want: %x", i, out, test.out)
@@ -228,7 +229,7 @@ func TestBitStringRightAlign(t *testing.T) {
 type objectIdentifierTest struct {
 	in  []byte
 	ok  bool
-	out ObjectIdentifier // has base type[]int
+	out asn1.ObjectIdentifier // has base type[]int
 }
 
 var objectIdentifierTestData = []objectIdentifierTest{
@@ -253,7 +254,7 @@ func TestObjectIdentifier(t *testing.T) {
 		}
 	}
 
-	if s := ObjectIdentifier([]int{1, 2, 3, 4}).String(); s != "1.2.3.4" {
+	if s := asn1.ObjectIdentifier([]int{1, 2, 3, 4}).String(); s != "1.2.3.4" {
 		t.Errorf("bad ObjectIdentifier.String(). Got %s, want 1.2.3.4", s)
 	}
 }
@@ -421,11 +422,11 @@ func newBool(b bool) *bool { return &b }
 
 var parseFieldParametersTestData []parseFieldParametersTest = []parseFieldParametersTest{
 	{"", fieldParameters{}},
-	{"ia5", fieldParameters{stringType: TagIA5String}},
-	{"generalized", fieldParameters{timeType: TagGeneralizedTime}},
-	{"utc", fieldParameters{timeType: TagUTCTime}},
-	{"printable", fieldParameters{stringType: TagPrintableString}},
-	{"numeric", fieldParameters{stringType: TagNumericString}},
+	{"ia5", fieldParameters{stringType: tagIA5String}},
+	{"generalized", fieldParameters{timeType: tagGeneralizedTime}},
+	{"utc", fieldParameters{timeType: tagUTCTime}},
+	{"printable", fieldParameters{stringType: tagPrintableString}},
+	{"numeric", fieldParameters{stringType: tagNumericString}},
 	{"optional", fieldParameters{optional: true}},
 	{"explicit", fieldParameters{explicit: true, tag: new(int)}},
 	{"application", fieldParameters{application: true, tag: new(int)}},
@@ -448,7 +449,7 @@ func TestParseFieldParameters(t *testing.T) {
 }
 
 type TestObjectIdentifierStruct struct {
-	OID ObjectIdentifier
+	OID asn1.ObjectIdentifier
 }
 
 type TestContextSpecificTags struct {
@@ -482,17 +483,17 @@ var unmarshalTestData = []struct {
 	out interface{}
 }{
 	{[]byte{0x02, 0x01, 0x42}, newInt(0x42)},
-	{[]byte{0x05, 0x00}, &RawValue{0, 5, false, []byte{}, []byte{0x05, 0x00}}},
+	{[]byte{0x05, 0x00}, &asn1.RawValue{0, 5, false, []byte{}, []byte{0x05, 0x00}}},
 	{[]byte{0x30, 0x08, 0x06, 0x06, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d}, &TestObjectIdentifierStruct{[]int{1, 2, 840, 113549}}},
-	{[]byte{0x03, 0x04, 0x06, 0x6e, 0x5d, 0xc0}, &BitString{[]byte{110, 93, 192}, 18}},
+	{[]byte{0x03, 0x04, 0x06, 0x6e, 0x5d, 0xc0}, &asn1.BitString{[]byte{110, 93, 192}, 18}},
 	{[]byte{0x30, 0x09, 0x02, 0x01, 0x01, 0x02, 0x01, 0x02, 0x02, 0x01, 0x03}, &[]int{1, 2, 3}},
 	{[]byte{0x02, 0x01, 0x10}, newInt(16)},
 	{[]byte{0x13, 0x04, 't', 'e', 's', 't'}, newString("test")},
 	{[]byte{0x16, 0x04, 't', 'e', 's', 't'}, newString("test")},
 	// Ampersand is allowed in PrintableString due to mistakes by major CAs.
 	{[]byte{0x13, 0x05, 't', 'e', 's', 't', '&'}, newString("test&")},
-	{[]byte{0x16, 0x04, 't', 'e', 's', 't'}, &RawValue{0, 22, false, []byte("test"), []byte("\x16\x04test")}},
-	{[]byte{0x04, 0x04, 1, 2, 3, 4}, &RawValue{0, 4, false, []byte{1, 2, 3, 4}, []byte{4, 4, 1, 2, 3, 4}}},
+	{[]byte{0x16, 0x04, 't', 'e', 's', 't'}, &asn1.RawValue{0, 22, false, []byte("test"), []byte("\x16\x04test")}},
+	{[]byte{0x04, 0x04, 1, 2, 3, 4}, &asn1.RawValue{0, 4, false, []byte{1, 2, 3, 4}, []byte{4, 4, 1, 2, 3, 4}}},
 	{[]byte{0x30, 0x03, 0x81, 0x01, 0x01}, &TestContextSpecificTags{1}},
 	{[]byte{0x30, 0x08, 0xa1, 0x03, 0x02, 0x01, 0x01, 0x02, 0x01, 0x02}, &TestContextSpecificTags2{1, 2}},
 	{[]byte{0x30, 0x03, 0x81, 0x01, '@'}, &TestContextSpecificTags3{"@"}},
@@ -521,12 +522,12 @@ func TestUnmarshal(t *testing.T) {
 type Certificate struct {
 	TBSCertificate     TBSCertificate
 	SignatureAlgorithm AlgorithmIdentifier
-	SignatureValue     BitString
+	SignatureValue     asn1.BitString
 }
 
 type TBSCertificate struct {
 	Version            int `asn1:"optional,explicit,default:0,tag:0"`
-	SerialNumber       RawValue
+	SerialNumber       asn1.RawValue
 	SignatureAlgorithm AlgorithmIdentifier
 	Issuer             RDNSequence
 	Validity           Validity
@@ -535,7 +536,7 @@ type TBSCertificate struct {
 }
 
 type AlgorithmIdentifier struct {
-	Algorithm ObjectIdentifier
+	Algorithm asn1.ObjectIdentifier
 }
 
 type RDNSequence []RelativeDistinguishedNameSET
@@ -543,7 +544,7 @@ type RDNSequence []RelativeDistinguishedNameSET
 type RelativeDistinguishedNameSET []AttributeTypeAndValue
 
 type AttributeTypeAndValue struct {
-	Type  ObjectIdentifier
+	Type  asn1.ObjectIdentifier
 	Value interface{}
 }
 
@@ -553,7 +554,7 @@ type Validity struct {
 
 type PublicKeyInfo struct {
 	Algorithm AlgorithmIdentifier
-	PublicKey BitString
+	PublicKey asn1.BitString
 }
 
 func TestCertificate(t *testing.T) {
@@ -578,7 +579,7 @@ func TestCertificateWithNUL(t *testing.T) {
 }
 
 type rawStructTest struct {
-	Raw RawContent
+	Raw asn1.RawContent
 	A   int
 }
 
@@ -604,25 +605,25 @@ func TestRawStructs(t *testing.T) {
 }
 
 type oiEqualTest struct {
-	first  ObjectIdentifier
-	second ObjectIdentifier
+	first  asn1.ObjectIdentifier
+	second asn1.ObjectIdentifier
 	same   bool
 }
 
 var oiEqualTests = []oiEqualTest{
 	{
-		ObjectIdentifier{1, 2, 3},
-		ObjectIdentifier{1, 2, 3},
+		asn1.ObjectIdentifier{1, 2, 3},
+		asn1.ObjectIdentifier{1, 2, 3},
 		true,
 	},
 	{
-		ObjectIdentifier{1},
-		ObjectIdentifier{1, 2, 3},
+		asn1.ObjectIdentifier{1},
+		asn1.ObjectIdentifier{1, 2, 3},
 		false,
 	},
 	{
-		ObjectIdentifier{1, 2, 3},
-		ObjectIdentifier{10, 11, 12},
+		asn1.ObjectIdentifier{1, 2, 3},
+		asn1.ObjectIdentifier{10, 11, 12},
 		false,
 	},
 }
@@ -638,31 +639,31 @@ func TestObjectIdentifierEqual(t *testing.T) {
 var derEncodedSelfSignedCert = Certificate{
 	TBSCertificate: TBSCertificate{
 		Version:            0,
-		SerialNumber:       RawValue{Class: 0, Tag: 2, IsCompound: false, Bytes: []uint8{0x0, 0x8c, 0xc3, 0x37, 0x92, 0x10, 0xec, 0x2c, 0x98}, FullBytes: []byte{2, 9, 0x0, 0x8c, 0xc3, 0x37, 0x92, 0x10, 0xec, 0x2c, 0x98}},
-		SignatureAlgorithm: AlgorithmIdentifier{Algorithm: ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}},
+		SerialNumber:       asn1.RawValue{Class: 0, Tag: 2, IsCompound: false, Bytes: []uint8{0x0, 0x8c, 0xc3, 0x37, 0x92, 0x10, 0xec, 0x2c, 0x98}, FullBytes: []byte{2, 9, 0x0, 0x8c, 0xc3, 0x37, 0x92, 0x10, 0xec, 0x2c, 0x98}},
+		SignatureAlgorithm: AlgorithmIdentifier{Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}},
 		Issuer: RDNSequence{
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 6}, Value: "XX"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 8}, Value: "Some-State"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 7}, Value: "City"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 10}, Value: "Internet Widgits Pty Ltd"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 3}, Value: "false.example.com"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: "false@example.com"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: "XX"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 8}, Value: "Some-State"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 7}, Value: "City"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 10}, Value: "Internet Widgits Pty Ltd"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "false.example.com"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: "false@example.com"}},
 		},
 		Validity: Validity{
 			NotBefore: time.Date(2009, 10, 8, 00, 25, 53, 0, time.UTC),
 			NotAfter:  time.Date(2010, 10, 8, 00, 25, 53, 0, time.UTC),
 		},
 		Subject: RDNSequence{
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 6}, Value: "XX"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 8}, Value: "Some-State"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 7}, Value: "City"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 10}, Value: "Internet Widgits Pty Ltd"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{2, 5, 4, 3}, Value: "false.example.com"}},
-			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: "false@example.com"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: "XX"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 8}, Value: "Some-State"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 7}, Value: "City"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 10}, Value: "Internet Widgits Pty Ltd"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "false.example.com"}},
+			RelativeDistinguishedNameSET{AttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: "false@example.com"}},
 		},
 		PublicKey: PublicKeyInfo{
-			Algorithm: AlgorithmIdentifier{Algorithm: ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}},
-			PublicKey: BitString{
+			Algorithm: AlgorithmIdentifier{Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}},
+			PublicKey: asn1.BitString{
 				Bytes: []uint8{
 					0x30, 0x48, 0x2, 0x41, 0x0, 0xcd, 0xb7,
 					0x63, 0x9c, 0x32, 0x78, 0xf0, 0x6, 0xaa, 0x27, 0x7f, 0x6e, 0xaf, 0x42,
@@ -676,8 +677,8 @@ var derEncodedSelfSignedCert = Certificate{
 			},
 		},
 	},
-	SignatureAlgorithm: AlgorithmIdentifier{Algorithm: ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}},
-	SignatureValue: BitString{
+	SignatureAlgorithm: AlgorithmIdentifier{Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}},
+	SignatureValue: asn1.BitString{
 		Bytes: []uint8{
 			0xa6, 0x7b, 0x6, 0xec, 0x5e, 0xce,
 			0x92, 0x77, 0x2c, 0xa4, 0x13, 0xcb, 0xa3, 0xca, 0x12, 0x56, 0x8f, 0xdc, 0x6c,
@@ -997,7 +998,7 @@ type exported struct {
 }
 
 func TestUnexportedStructField(t *testing.T) {
-	want := StructuralError{"struct contains unexported fields"}
+	want := asn1.StructuralError{"struct contains unexported fields"}
 
 	_, err := Marshal(unexported{X: 5, y: 1})
 	if err != want {
@@ -1024,7 +1025,7 @@ func TestNull(t *testing.T) {
 		t.Errorf("Expected Marshal of NullRawValue to yield %x, got %x", NullBytes, marshaled)
 	}
 
-	unmarshaled := RawValue{}
+	unmarshaled := asn1.RawValue{}
 	if _, err := Unmarshal(NullBytes, &unmarshaled); err != nil {
 		t.Fatal(err)
 	}
@@ -1042,8 +1043,8 @@ func TestNull(t *testing.T) {
 
 func TestExplicitTagRawValueStruct(t *testing.T) {
 	type foo struct {
-		A RawValue `asn1:"optional,explicit,tag:5"`
-		B []byte   `asn1:"optional,explicit,tag:6"`
+		A asn1.RawValue `asn1:"optional,explicit,tag:5"`
+		B []byte        `asn1:"optional,explicit,tag:6"`
 	}
 	before := foo{B: []byte{1, 2, 3}}
 	derBytes, err := Marshal(before)
@@ -1065,10 +1066,10 @@ func TestExplicitTagRawValueStruct(t *testing.T) {
 
 func TestTaggedRawValue(t *testing.T) {
 	type taggedRawValue struct {
-		A RawValue `asn1:"tag:5"`
+		A asn1.RawValue `asn1:"tag:5"`
 	}
 	type untaggedRawValue struct {
-		A RawValue
+		A asn1.RawValue
 	}
 	const isCompound = 0x20
 	const tag = 5
@@ -1077,11 +1078,11 @@ func TestTaggedRawValue(t *testing.T) {
 		shouldMatch bool
 		derBytes    []byte
 	}{
-		{false, []byte{0x30, 3, TagInteger, 1, 1}},
-		{true, []byte{0x30, 3, (ClassContextSpecific << 6) | tag, 1, 1}},
-		{true, []byte{0x30, 3, (ClassContextSpecific << 6) | tag | isCompound, 1, 1}},
-		{false, []byte{0x30, 3, (ClassApplication << 6) | tag | isCompound, 1, 1}},
-		{false, []byte{0x30, 3, (ClassPrivate << 6) | tag | isCompound, 1, 1}},
+		{false, []byte{0x30, 3, asn1.TagInteger, 1, 1}},
+		{true, []byte{0x30, 3, (asn1.ClassContextSpecific << 6) | tag, 1, 1}},
+		{true, []byte{0x30, 3, (asn1.ClassContextSpecific << 6) | tag | isCompound, 1, 1}},
+		{false, []byte{0x30, 3, (asn1.ClassApplication << 6) | tag | isCompound, 1, 1}},
+		{false, []byte{0x30, 3, (asn1.ClassPrivate << 6) | tag | isCompound, 1, 1}},
 	}
 
 	for i, test := range tests {
