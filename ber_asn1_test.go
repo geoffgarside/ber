@@ -367,22 +367,22 @@ type tagAndLengthTest struct {
 }
 
 var tagAndLengthData = []tagAndLengthTest{
-	{[]byte{0x80, 0x01}, true, tagAndLength{2, 0, 1, false}},
-	{[]byte{0xa0, 0x01}, true, tagAndLength{2, 0, 1, true}},
-	{[]byte{0x02, 0x00}, true, tagAndLength{0, 2, 0, false}},
-	{[]byte{0xfe, 0x00}, true, tagAndLength{3, 30, 0, true}},
-	{[]byte{0x1f, 0x1f, 0x00}, true, tagAndLength{0, 31, 0, false}},
-	{[]byte{0x1f, 0x81, 0x00, 0x00}, true, tagAndLength{0, 128, 0, false}},
-	{[]byte{0x1f, 0x81, 0x80, 0x01, 0x00}, true, tagAndLength{0, 0x4001, 0, false}},
-	{[]byte{0x00, 0x81, 0x80}, true, tagAndLength{0, 0, 128, false}},
-	{[]byte{0x00, 0x82, 0x01, 0x00}, true, tagAndLength{0, 0, 256, false}},
+	{[]byte{0x80, 0x01}, true, tagAndLength{class: 2, tag: 0, length: 1, isCompound: false}},
+	{[]byte{0xa0, 0x01}, true, tagAndLength{class: 2, tag: 0, length: 1, isCompound: true}},
+	{[]byte{0x02, 0x00}, true, tagAndLength{class: 0, tag: 2, length: 0, isCompound: false}},
+	{[]byte{0xfe, 0x00}, true, tagAndLength{class: 3, tag: 30, length: 0, isCompound: true}},
+	{[]byte{0x1f, 0x1f, 0x00}, true, tagAndLength{class: 0, tag: 31, length: 0, isCompound: false}},
+	{[]byte{0x1f, 0x81, 0x00, 0x00}, true, tagAndLength{class: 0, tag: 128, length: 0, isCompound: false}},
+	{[]byte{0x1f, 0x81, 0x80, 0x01, 0x00}, true, tagAndLength{class: 0, tag: 0x4001, length: 0, isCompound: false}},
+	{[]byte{0x00, 0x81, 0x80}, true, tagAndLength{class: 0, tag: 0, length: 128, isCompound: false}},
+	{[]byte{0x00, 0x82, 0x01, 0x00}, true, tagAndLength{class: 0, tag: 0, length: 256, isCompound: false}},
 	{[]byte{0x00, 0x83, 0x01, 0x00}, false, tagAndLength{}},
 	{[]byte{0x1f, 0x85}, false, tagAndLength{}},
 	{[]byte{0x30, 0x80}, false, tagAndLength{}},
 	// Superfluous zeros in the length should be an error.
 	{[]byte{0xa0, 0x82, 0x00, 0xff}, false, tagAndLength{}},
 	// Lengths up to the maximum size of an int should work.
-	{[]byte{0xa0, 0x84, 0x7f, 0xff, 0xff, 0xff}, true, tagAndLength{2, 0, 0x7fffffff, true}},
+	{[]byte{0xa0, 0x84, 0x7f, 0xff, 0xff, 0xff}, true, tagAndLength{class: 2, tag: 0, length: 0x7fffffff, isCompound: true}},
 	// Lengths that would overflow an int should be rejected.
 	{[]byte{0xa0, 0x84, 0x80, 0x00, 0x00, 0x00}, false, tagAndLength{}},
 	// Long length form may not be used for lengths that fit in short form.

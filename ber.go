@@ -460,9 +460,28 @@ func parseTagAndLength(bytes []byte, initOffset int) (ret tagAndLength, offset i
 		// Bottom 7 bits give the number of length bytes to follow.
 		numBytes := int(b & 0x7f)
 		if numBytes == 0 {
-			// TODO: Fix this for BER as it should be allowed. Not seen this in
-			// the wild with SNMP devices though.
-			err = asn1.SyntaxError{Msg: "indefinite length found (not DER)"}
+			if !ret.isCompound {
+				err = asn1.SyntaxError{Msg: "indefinite length for non-constructed type"}
+				return
+			}
+			ret.isIndefinite = true
+			innerOffset := offset
+			for innerOffset <= (len(bytes) - 2) {
+				if bytes[innerOffset] == 0x00 && bytes[innerOffset+1] == 0x00 {
+					ret.length = innerOffset - offset
+					return
+				}
+				var t tagAndLength
+				t, innerOffset, err = parseTagAndLength(bytes, innerOffset)
+				if err != nil {
+					return
+				}
+				innerOffset += t.length
+				if t.isIndefinite {
+					innerOffset += 2
+				}
+			}
+			err = asn1.SyntaxError{Msg: "missing end-of-contents octets"}
 			return
 		}
 		ret.length = 0
@@ -526,6 +545,9 @@ func parseSequenceOf(bytes []byte, sliceType reflect.Type, elemType reflect.Type
 			return
 		}
 		offset += t.length
+		if t.isIndefinite {
+			offset += 2
+		}
 		numElements++
 	}
 	ret = reflect.MakeSlice(sliceType, numElements, numElements)
@@ -616,6 +638,9 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 			}
 		}
 		offset += t.length
+		if t.isIndefinite {
+			offset += 2
+		}
 		if err != nil {
 			return
 		}
@@ -629,6 +654,7 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 	if err != nil {
 		return
 	}
+	explicitIsIndefinite := params.explicit && t.isIndefinite
 	if params.explicit {
 		expectedClass := classContextSpecific
 		if params.application {
@@ -735,13 +761,28 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		err = asn1.SyntaxError{Msg: "data truncated"}
 		return
 	}
-	innerBytes := bytes[offset : offset+t.length]
+	err = parseFieldContents(t, v, universalTag, bytes[initOffset:offset+t.length], offset-initOffset)
+	if err != nil {
+		return
+	}
 	offset += t.length
+	if t.isIndefinite {
+		offset += 2
+	}
+	if explicitIsIndefinite {
+		offset += 2
+	}
+	return
+}
+
+func parseFieldContents(t tagAndLength, v reflect.Value, universalTag int, bytes []byte, offset int) (err error) {
+	innerBytes := bytes[offset:]
+	fieldType := v.Type()
 
 	// We deal with the structures defined in this package first.
 	switch fieldType {
 	case rawValueType:
-		result := asn1.RawValue{t.class, t.tag, t.isCompound, innerBytes, bytes[initOffset:offset]}
+		result := asn1.RawValue{t.class, t.tag, t.isCompound, innerBytes, bytes}
 		v.Set(reflect.ValueOf(result))
 		return
 	case objectIdentifierType:
@@ -826,7 +867,6 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 
 		if structType.NumField() > 0 &&
 			structType.Field(0).Type == rawContentsType {
-			bytes := bytes[initOffset:offset]
 			val.Field(0).Set(reflect.ValueOf(asn1.RawContent(bytes)))
 		}
 
