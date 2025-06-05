@@ -12,8 +12,8 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - "oldstable"
-          - "stable"
+          - oldstable
+          - stable
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go ${{ matrix.go-version }}
