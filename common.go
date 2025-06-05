@@ -41,6 +41,7 @@ const (
 type tagAndLength struct {
 	class, tag, length int
 	isCompound         bool
+	isIndefinite       bool
 }
 
 // ASN.1 has IMPLICIT and EXPLICIT tags, which can be translated as "instead
