@@ -19,7 +19,7 @@ jobs:
       - name: Setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: ^${{ matrix.go-version }}
+          go-version: ${{ matrix.go-version }}
       - name: Install Dependencies
         run: go get .
       - name: Build
